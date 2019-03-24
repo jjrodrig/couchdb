@@ -426,6 +426,7 @@ db_req(#httpd{method='POST', path_parts=[DbName], user_ctx=Ctx}=Req, Db) ->
     Options = [{user_ctx,Ctx}, {w,W}],
 
     Doc = couch_db:doc_from_json_obj_validate(Db, chttpd:json_body(Req)),
+    validate_attachment_names(Doc),
     Doc2 = case Doc#doc.id of
         <<"">> ->
             Doc#doc{id=couch_uuids:new(), revs={0, []}};
@@ -1412,6 +1413,7 @@ couch_doc_open(Db, DocId, Rev, Options0) ->
 db_attachment_req(#httpd{method='GET',mochi_req=MochiReq}=Req, Db, DocId, FileNameParts) ->
     FileName = list_to_binary(mochiweb_util:join(lists:map(fun binary_to_list/1,
         FileNameParts),"/")),
+    validate_attachment_name(FileName),
     #doc_query_args{
         rev=Rev,
         options=Options
@@ -1716,7 +1718,7 @@ parse_partitioned_opt(Req) ->
 
 validate_partitioned_db_enabled(Req) ->
     case couch_flags:is_enabled(partitioned, Req) of
-        true -> 
+        true ->
             ok;
         false ->
             throw({bad_request, <<"Partitioned feature is not enabled.">>})
