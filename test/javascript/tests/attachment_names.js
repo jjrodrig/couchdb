@@ -90,6 +90,19 @@ couchTests.attachment_names = function(debug) {
     TEquals("Attachment name '_foo.txt' starts with prohibited character '_'", e.reason, "attachment_name: leading underscore");
   }
 
+  xhr = (CouchDB.request("POST", "/" + db_name, {
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(binAttDoc)
+  }));
+  resp = JSON.parse(xhr.responseText);
+  TEquals(400, xhr.status, "attachment_name: leading underscore");
+  TEquals("Attachment name '_foo.txt' starts with prohibited character '_'", resp.reason, "attachment_name: leading underscore");
+
+  xhr = CouchDB.request("GET", "/" + db_name + "/bin_doc2/_foo.txt");
+  resp = JSON.parse(xhr.responseText);
+  TEquals(400, xhr.status, "attachment_name: leading underscore");
+  TEquals("Attachment name '_foo.txt' starts with prohibited character '_'", resp.reason, "attachment_name: leading underscore");
+
   // todo: form uploads, waiting for cmlenz' test case for form uploads
   // cleanup
   db.deleteDb();
