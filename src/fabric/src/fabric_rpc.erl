@@ -505,13 +505,16 @@ changes_enumerator(DocInfo, Acc) ->
             include_docs = IncludeDocs,
             conflicts = Conflicts,
             filter_fun = Filter,
-            doc_options = DocOptions
+            doc_options = DocOptions,
+            bootstrap = Bootstrap,
+            since = Since
         },
         pending = Pending,
         epochs = Epochs
     } = Acc,
+    ShouldSkipDeleted = (Since =< 1 andalso Bootstrap),
     #doc_info{id=Id, high_seq=Seq, revs=[#rev_info{deleted=Del}|_]} = DocInfo,
-    case [X || X <- couch_changes:filter(Db, DocInfo, Filter), X /= null] of
+    case [X || X <- maybe_filter(Db, DocInfo, Filter, ShouldSkipDeleted), X /= null] of
     [] ->
         ChangesRow = {no_pass, [
             {pending, Pending-1},
@@ -530,6 +533,11 @@ changes_enumerator(DocInfo, Acc) ->
     end,
     ok = rexi:stream2(ChangesRow),
     {ok, Acc#fabric_changes_acc{seq = Seq, pending = Pending-1}}.
+
+maybe_filter(_Db, #doc_info{revs=[#rev_info{deleted=true}|_]}, _Filter, true) ->
+    [];
+maybe_filter(Db, DocInfo, Filter, _) ->
+    couch_changes:filter(Db,DocInfo,Filter).
 
 doc_member(Shard, DocInfo, Opts, Filter) ->
     case couch_db:open_doc(Shard, DocInfo, [deleted | Opts]) of

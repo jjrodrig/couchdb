@@ -1880,6 +1880,8 @@ parse_changes_query(Req) ->
             catch error:badarg ->
                 throw({bad_request, invalid_seq_interval})
             end;
+        {"bootstrap", "true"} ->
+            Args#changes_args{bootstrap=true};
         _Else -> % unknown key value pair, ignore.
             Args
         end
