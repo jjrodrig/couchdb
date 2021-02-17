@@ -84,9 +84,17 @@ handle_request(#httpd{path_parts=[DbName|RestParts],method=Method}=Req)->
 
 handle_changes_req(#httpd{method='POST'}=Req, Db) ->
     chttpd:validate_ctype(Req, "application/json"),
-    fabric2_fdb:transactional(Db, fun(TxDb) ->
-        handle_changes_req_tx(Req, TxDb)
-    end);
+    case chttpd:body_length(Req) of
+        0 ->
+            fabric2_fdb:transactional(Db, fun(TxDb) ->
+                handle_changes_req_tx(Req, TxDb)
+             end);
+        _ ->
+            {JsonProps} = chttpd:json_body_obj(Req),
+            fabric2_fdb:transactional(Db, fun(TxDb) ->
+                handle_changes_req_tx(Req#httpd{req_body = {JsonProps}}, TxDb)
+            end)
+    end;
 handle_changes_req(#httpd{method='GET'}=Req, Db) ->
     fabric2_fdb:transactional(Db, fun(TxDb) ->
         handle_changes_req_tx(Req, TxDb)
